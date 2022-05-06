@@ -1,0 +1,17 @@
+{
+  "name": "CattrDemo",
+  "alias": "demo",
+  "description": "",
+  "keywords": [],
+  "order": 0,
+  "providers": [
+    "Modules\\Demo\\Providers\\ModuleProvider"
+  ],
+  "aliases": {},
+  "files": [],
+  "requires": [],
+  "minimumCoreVersion": "4.0",
+  "title": "",
+  "version": 1.0,
+  "author": "Alex V <alex@cattr.app>"
+}

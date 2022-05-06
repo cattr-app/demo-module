@@ -1,0 +1,24 @@
+{
+  "type": "laravel-module",
+  "name": "amazingcat/cattr_demo-module",
+  "description": "Demo Module for Cattr",
+  "authors": [
+    {
+      "name": "Alex V",
+      "email": "alex@cattr.app"
+    }
+  ],
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Modules\\Demo\\Providers\\ModuleProvider"
+      ],
+      "aliases": []
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Modules\\Demo\\": ""
+    }
+  }
+}
