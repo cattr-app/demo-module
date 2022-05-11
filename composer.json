@@ -1,6 +1,6 @@
 {
   "type": "laravel-module",
-  "name": "amazingcat/cattr_demo-module",
+  "name": "cattr/demo-module",
   "description": "Demo Module for Cattr",
   "authors": [
     {

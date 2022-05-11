@@ -1,8 +1,18 @@
+stages:
+  - test
+  - deploy
+
+sast:
+  variables:
+    SAST_EXCLUDED_ANALYZERS: bandit, brakeman, eslint, flawfinder, gosec, kubesec,
+      nodejs-scan, pmd-apex, security-code-scan, sobelow, spotbugs
+  stage: test
+
 publish:
   image: curlimages/curl:latest
   stage: deploy
   only:
-      - tags
+    - tags
   variables:
     URL: "$CI_SERVER_PROTOCOL://$CI_SERVER_HOST:$CI_SERVER_PORT/api/v4/projects/$CI_PROJECT_ID/packages/composer?job_token=$CI_JOB_TOKEN"
   script:
@@ -13,8 +23,14 @@ publish:
     - body=$(echo "$response" | head -n 1)
     # Output state information
     - if [ $code -eq 201 ]; then
-        echo "Package created - Code $code - $body";
+      echo "Package created - Code $code - $body";
       else
-        echo "Could not create package - Code $code - $body";
-        exit 1;
+      echo "Could not create package - Code $code - $body";
+      exit 1;
       fi
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
