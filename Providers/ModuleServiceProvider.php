@@ -9,12 +9,10 @@ use Modules\Demo\Commands\DemoReset;
 use Modules\Demo\Commands\EmulateWork;
 use Modules\Demo\Commands\PlanWork;
 
-class ModuleProvider extends ServiceProvider
+class ModuleServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->register(DemoScreenshotServiceProvider::class);
-
         $this->commands([
             DemoReset::class,
             EmulateWork::class,

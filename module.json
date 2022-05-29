@@ -3,15 +3,13 @@
   "alias": "demo",
   "description": "",
   "keywords": [],
-  "order": 0,
+  "priority": 5,
   "providers": [
-    "Modules\\Demo\\Providers\\ModuleProvider"
+    "Modules\\Demo\\Providers\\ModuleServiceProvider",
+    "Modules\\Demo\\Providers\\DemoScreenshotServiceProvider"
   ],
   "aliases": {},
   "files": [],
   "requires": [],
-  "minimumCoreVersion": "4.0",
-  "title": "",
-  "version": 1.0,
-  "author": "Alex V <alex@cattr.app>"
+  "minimumCoreVersion": "4.0"
 }

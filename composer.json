@@ -1,21 +1,15 @@
 {
-  "type": "laravel-module",
   "name": "cattr/demo-module",
   "description": "Demo Module for Cattr",
+  "type": "laravel-module",
+  "license": "proprietary",
   "authors": [
     {
       "name": "Alex V",
-      "email": "alex@cattr.app"
+      "email": "alex@cattr.app",
+      "role": "Maintainer"
     }
   ],
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Modules\\Demo\\Providers\\ModuleProvider"
-      ],
-      "aliases": []
-    }
-  },
   "autoload": {
     "psr-4": {
       "Modules\\Demo\\": ""
