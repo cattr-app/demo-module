@@ -2,6 +2,7 @@
 
 namespace Modules\Demo\Commands;
 
+use App\Enums\Role;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -191,7 +192,7 @@ class PlanWork extends Command
      */
     public function handle(): int
     {
-        $users = User::where(['is_admin' => false])->get()->toArray();
+        $users = User::where(['role_id', '!=', Role::ADMIN])->get()->toArray();
 
         $plan = [];
         $plans = $this->plans;

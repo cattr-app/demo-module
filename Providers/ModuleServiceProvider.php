@@ -39,4 +39,9 @@ class ModuleServiceProvider extends ServiceProvider
             $schedule->command(DemoReset::class)->daily();
         });
     }
+
+    public static function registerEvents (): void
+    {
+    }
+
 }
