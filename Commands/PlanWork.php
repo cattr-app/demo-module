@@ -192,7 +192,7 @@ class PlanWork extends Command
      */
     public function handle(): int
     {
-        $users = User::where(['role_id', '!=', Role::ADMIN])->get()->toArray();
+        $users = User::where('role_id', '!=', Role::ADMIN)->get()->toArray();
 
         $plan = [];
         $plans = $this->plans;
