@@ -18,7 +18,6 @@ class ModuleServiceProvider extends ServiceProvider
             EmulateWork::class,
             PlanWork::class,
         ]);
-
     }
 
     public function boot(): void
@@ -35,13 +34,12 @@ class ModuleServiceProvider extends ServiceProvider
         });
     }
 
-    public static function registerEvents (): void
+    public static function registerEvents(): void
     {
-        Filter::listen('filter.request.users.edit', static function($requestData) {
+        Filter::listen('filter.request.users.edit', static function ($requestData) {
             unset($requestData['password']);
 
             return $requestData;
         });
     }
-
 }
