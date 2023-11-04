@@ -19,11 +19,6 @@ class ModuleServiceProvider extends ServiceProvider
             PlanWork::class,
         ]);
 
-        Filter::listen('filter.request.users.edit', static function($requestData) {
-            unset($requestData['password']);
-
-            return $requestData;
-        });
     }
 
     public function boot(): void
@@ -42,6 +37,11 @@ class ModuleServiceProvider extends ServiceProvider
 
     public static function registerEvents (): void
     {
+        Filter::listen('filter.request.users.edit', static function($requestData) {
+            unset($requestData['password']);
+
+            return $requestData;
+        });
     }
 
 }
