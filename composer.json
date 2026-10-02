@@ -2,17 +2,17 @@
   "name": "cattr/demo-module",
   "description": "Demo Module for Cattr",
   "type": "laravel-module",
-  "license": "proprietary",
+  "license": "SSPL-1.0",
   "authors": [
     {
       "name": "Alex V",
-      "email": "alex@cattr.app",
+      "email": "inbox@alexv-pro.ru",
       "role": "Maintainer"
     }
   ],
   "autoload": {
     "psr-4": {
-      "Modules\\Demo\\": ""
+      "Modules\\Demo\\": "backend/"
     }
   }
 }
