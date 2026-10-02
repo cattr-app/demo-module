@@ -8,6 +8,9 @@
   "contributors": [
     "Alex V <inbox@alexv-pro.ru>"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "module.init.js",
   "files": [
     "module.init.js",
