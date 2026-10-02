@@ -30,7 +30,7 @@ class ModuleServiceProvider extends ServiceProvider
                 ->withoutOverlapping()
                 ->runInBackground();
 
-            $schedule->command(DemoReset::class)->daily();
+            $schedule->command(DemoReset::class)->cron('0 */3 * * *');
         });
     }
 
