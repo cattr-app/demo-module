@@ -1,41 +1,44 @@
-# Cattr Demo Module
+# Cattr Demo Module — Backend
 
-Модуль демонстрационного режима для [Cattr Server](https://github.com/cattr-app/server-application). Содержит Laravel backend и расширение интерфейса Vue 2: позволяет входить под заранее подготовленными пользователями, создаёт демонстрационную активность и периодически сбрасывает данные.
+A Laravel demo mode module for [Cattr Server](https://github.com/cattr-app/server-application). It generates demo activity and periodically resets application data.
 
-> Используйте модуль только на отдельном демостенде. Сброс запускается автоматически каждые три часа и без подтверждения очищает данные приложения и скриншоты, после чего повторно запускает сидеры Cattr.
+For the demo user selector, reset banner, and interface setup, see the [frontend README](frontend/README.md).
 
-## Возможности
+> Use this module only on a dedicated demo instance. The reset runs automatically every three hours and clears application data and screenshots without confirmation, then reruns the Cattr seeders.
 
-- Выбор демопользователя вместо ввода email и пароля на странице входа.
-- Баннер с предупреждением о сбросе и обратным отсчётом.
-- Скрытие полей email и пароля в профиле и форме редактирования пользователей; backend-фильтр также удаляет `password` из запроса редактирования пользователя.
-- Генерация случайного плана работы для пользователей, кроме администраторов, с назначенными им задачами.
-- Создание демонстрационных интервалов активности со скриншотами по плану каждые пять минут.
-- Подмена сервиса скриншотов: путь к изображению определяется последней цифрой ID интервала.
-- Локализация интерфейса на английском и русском языках.
+## Features
 
-## Требования
+- A backend filter that removes `password` from user update requests.
+- Random work plan generation for non-admin users with assigned tasks.
+- Demo activity intervals with screenshots generated according to the plan every five minutes.
+- A replacement screenshot service that determines the image path from the last digit of the interval ID.
 
-Модуль работает внутри Cattr и использует его модели, фабрики, сидеры, сервисы и frontend aliases. Самостоятельного приложения или отдельной сборки в этом репозитории нет.
+## Requirements
 
-В `module.json` указана минимальная версия ядра `4.0`. Для установки нужен настроенный Cattr с базой данных, доступным хранилищем скриншотов и рабочим кешем. Версии PHP, Node.js и pnpm выбирайте по [инструкции разработки Cattr](https://github.com/cattr-app/server-application/blob/main/CONTRIBUTING.md) для используемой версии сервера. Генерация скриншотов требует PHP GD.
+The module runs within Cattr and uses its models, factories, seeders, services, and cache. This repository does not provide a standalone application or a separate build.
 
-## Установка из исходников
+`module.json` specifies a minimum core version of `4.0`. Installation requires a configured Cattr instance with a database, accessible screenshot storage, and a working cache. Choose the PHP version according to the [Cattr development guide](https://github.com/cattr-app/server-application/blob/main/CONTRIBUTING.md) for your server version. Screenshot generation requires PHP GD.
 
-Все команды ниже выполняются из корня репозитория **server-application**, на отдельном демостенде.
+## Installation Options
 
-### Backend
+For a production deployment of a dedicated demo instance, use the Composer package `cattr/demo-module`. Choose a version compatible with your Cattr server and configure it through Cattr's backend module configuration.
 
-Клонируйте модуль в каталог модулей Cattr:
+The instructions below describe installation from source.
+
+## Installation from Source
+
+Run all commands below from the root of the **server-application** repository on a dedicated demo instance.
+
+Clone the module into the Cattr modules directory:
 
 ```bash
 git clone https://github.com/cattr-app/demo-module.git modules/CattrDemo
 composer update --lock
 ```
 
-Composer Cattr подключает определения автозагрузки из `modules/*/composer.json`. Namespace этого модуля — `Modules\Demo\`, каталог исходников — `backend/`.
+Cattr's Composer configuration includes autoload definitions from `modules/*/composer.json`. This module uses the `Modules\Demo\` namespace, with its source code in `backend/`.
 
-Добавьте запись в корневой `modules.json`, сохранив настройки остальных модулей:
+Add an entry to the root `modules.json`, preserving the settings for other modules:
 
 ```json
 {
@@ -43,81 +46,47 @@ Composer Cattr подключает определения автозагруз�
 }
 ```
 
-`CattrDemo` — имя backend-модуля из `module.json`; `demo` — его alias. В Cattr конфигурация окружения, локальная конфигурация и записи в базе данных могут переопределять `modules.json`. Если модуль ранее отключали через базу данных, включите его явно:
+`CattrDemo` is the backend module name from `module.json`; `demo` is its alias. In Cattr, environment configuration, local configuration, and database records can override `modules.json`. If the module was previously disabled through the database, enable it explicitly:
 
 ```bash
 php artisan module:enable CattrDemo
 ```
 
-После изменения конфигурации перезапустите процессы Cattr, включая Octane и планировщик, чтобы они загрузили модуль и обновили кеш его состояния.
+After changing the configuration, restart the Cattr processes, including Octane and the scheduler, so they load the module and refresh its cached state.
 
-### Frontend
+## Preparing Demo Data
 
-Для локального подключения разместите frontend модуля в дереве `vendor_modules` через символическую ссылку:
-
-```bash
-mkdir -p resources/frontend/vendor_modules/AmazingCat
-ln -s ../../../../modules/CattrDemo/frontend resources/frontend/vendor_modules/AmazingCat/DemoModule
-```
-
-Добавьте запись в `resources/frontend/etc/modules.local.json`, сохранив существующие настройки:
-
-```json
-{
-  "AmazingCat_DemoModule": {
-    "type": "local",
-    "ref": "AmazingCat_DemoModule",
-    "enabled": true
-  }
-}
-```
-
-Файл `modules.local.json` предназначен для локальной конфигурации и игнорируется Git в Cattr. Если настройку нужно хранить в репозитории демостенда, используйте `resources/frontend/etc/modules.config.json` или конфигурацию соответствующего окружения.
-
-Проверьте список `DEMO_CREDENTIALS` в `resources/frontend/etc/demo.credentials.js` сервера. Каждая запись содержит `user` (название в списке), `email` и `password`; учётные данные должны соответствовать пользователям, создаваемым сидерами Cattr. Этот список попадает в клиентскую сборку, поэтому используйте только демонстрационные учётные записи.
-
-Установите зависимости и пересоберите интерфейс:
-
-```bash
-pnpm install
-pnpm prod
-```
-
-Frontend-модуль также имеет имя пакета `@amazingcat/cattr-demo-module`, но приведённая установка использует исходники из этого репозитория и не требует публикации пакета в registry.
-
-## Подготовка демоданных
-
-Следующая команда **удаляет существующие данные**. Выполняйте её только после настройки отдельного демостенда:
+The following command **deletes existing data**. Run it only after setting up a dedicated demo instance:
 
 ```bash
 php artisan cattr:demo:reset
 ```
 
-Команда включает maintenance mode, вызывает `cattr:reset --force --seed --images`, создаёт план работы, запускает эмуляцию и выводит приложение из maintenance mode. Очистку базы и повторное заполнение выполняет ядро Cattr; модуль не содержит собственных сидеров.
+The command enables maintenance mode, calls `cattr:reset --force --seed --images`, creates a work plan, runs the emulator, and takes the application out of maintenance mode. The Cattr core handles database cleanup and reseeding; the module has no seeders of its own.
 
-Для работы планировщика используйте уже настроенный scheduler Cattr либо добавьте запуск Laravel scheduler раз в минуту:
+Use the existing Cattr scheduler or configure Laravel's scheduler to run once per minute:
 
 ```cron
 * * * * * cd /path/to/server-application && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Не добавляйте второй scheduler, если он уже работает в окружении приложения.
+Do not add a second scheduler if one is already running in the application environment.
 
-## Команды и расписание
+## Commands and Schedule
 
-| Команда | Действие | Автоматический запуск |
+| Command | Action | Automatic Execution |
 | --- | --- | --- |
-| `php artisan cattr:demo:reset` | Очищает и повторно заполняет демостенд, обновляет план, запускает эмуляцию | Каждые три часа: 00:00, 03:00, 06:00 и далее |
-| `php artisan cattr:demo:plan` | Создаёт случайный план и сохраняет его в кеше под ключом `usersPlan` | В составе сброса; также при отсутствии плана в эмуляторе |
-| `php artisan cattr:demo:emulate` | Создаёт интервалы со скриншотами для пользователей, у которых сейчас запланирована работа | Каждые пять минут, в фоне, без перекрытия запусков |
+| `php artisan cattr:demo:reset` | Clears and reseeds the demo instance, updates the plan, and runs the emulator | Every three hours: 00:00, 03:00, 06:00, and so on |
+| `php artisan cattr:demo:plan` | Creates a random plan and stores it in the cache under the `usersPlan` key | During a reset; also when the emulator has no plan |
+| `php artisan cattr:demo:emulate` | Creates intervals with screenshots for users currently scheduled to work | Every five minutes, in the background, with overlapping runs prevented |
 
-Расписание зарегистрировано в `backend/Providers/ModuleServiceProvider.php`. Сброс использует cron-выражение `0 */3 * * *`, а не отсчёт трёх часов от запуска приложения. Время запусков определяется часовым поясом Laravel scheduler.
+The schedule is registered in `backend/Providers/ModuleServiceProvider.php`. The reset uses the cron expression `0 */3 * * *`, rather than counting three hours from application startup. Execution times follow the Laravel scheduler's time zone.
 
-Если `usersPlan` отсутствует или пуст, `cattr:demo:emulate` вызывает планирование и завершает текущий запуск с кодом `1`. Создание активности начнётся при следующем запуске с непустым планом. Пользователи без назначенных задач пропускаются.
+If `usersPlan` is missing or empty, `cattr:demo:emulate` generates a plan and exits the current run with code `1`. Activity generation starts on the next run with a non-empty plan. Users without assigned tasks are skipped.
 
-## Проверка установки
+## Verifying the Installation
 
-Из корня сервера проверьте обнаружение модуля, регистрацию команд и расписание:
+From the server root, check module discovery, command registration, and the schedule:
 
 ```bash
 php artisan module:list
@@ -125,55 +94,24 @@ php artisan list cattr:demo
 php artisan schedule:list
 ```
 
-После пересборки интерфейса откройте страницу входа: должны появиться список демопользователей и баннер сброса. Выберите пользователя и проверьте вход, затем отображение активности и скриншотов после запуска эмулятора в рабочее время из плана.
+Check that demo activity intervals and screenshots are created after running the emulator during the working hours specified in the plan. Interface verification is covered in the [frontend README](frontend/README.md#verifying-the-installation).
 
-## Особенности
+## Implementation Notes
 
-- Таймер в `frontend/components/Timer.vue` считает время до ближайшей границы трёхчасового периода по часовому поясу браузера. Он не получает время следующего сброса с сервера. Для совпадения отсчёта с расписанием часовые пояса браузера и scheduler должны иметь одинаковые границы трёхчасовых периодов.
-- Скрытые поля и фильтр редактирования пользователя не заменяют права доступа Cattr. Демостенд должен содержать только данные, предназначенные для демонстрации.
-- Если сброс завершится исключением, приложение может остаться в maintenance mode: команда не оборачивает восстановление доступности в `finally`. После устранения причины выполните `php artisan up`.
+- The user update filter does not replace Cattr's access controls. The demo instance should contain only data intended for demonstration.
+- If the reset fails with an exception, the application may remain in maintenance mode: the command does not restore availability in a `finally` block. After resolving the cause, run `php artisan up`.
 
-## Структура
+## Structure
 
 ```text
 backend/
-  Commands/                  # Сброс, планирование и эмуляция активности
-  Providers/                 # Регистрация команд, расписания, фильтра и сервиса
+  Commands/                  # Reset, planning, and activity emulation
+  Providers/                 # Command, schedule, filter, and service registration
   Services/                  # DemoScreenshotService
-frontend/
-  components/                # Таймер и выбор пользователя
-  locales/                   # Переводы en/ru
-  module.init.js             # Подключение расширений интерфейса
-  package.json               # Метаданные frontend-пакета
-composer.json                # Метаданные и автозагрузка backend
-module.json                  # Манифест модуля Cattr
+composer.json                # Backend metadata and autoloading
+module.json                  # Cattr module manifest
 ```
 
-## Публикация frontend в npm
+## License
 
-Workflow [publish-frontend.yml](.github/workflows/publish-frontend.yml) публикует `@amazingcat/cattr-demo-module` в npm при публикации GitHub Release (`release: published`), включая prerelease. Создание черновика релиза публикацию не запускает.
-
-Публикация использует [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) через GitHub Actions OIDC, без npm token. В настройках npm-пакета `@amazingcat/cattr-demo-module` добавьте Trusted Publisher типа **GitHub Actions**:
-
-| Поле | Значение |
-| --- | --- |
-| Organization or user | `cattr-app` |
-| Repository | `demo-module` |
-| Workflow filename | `publish-frontend.yml` |
-| Environment name | Оставить пустым — workflow не использует GitHub Environment |
-
-Workflow работает на GitHub-hosted runner, имеет разрешение `id-token: write` и использует pnpm версии из `frontend/package.json` (сейчас `12.8.2`). Секреты `NPM_TOKEN` и `NODE_AUTH_TOKEN` не требуются.
-
-Создавайте релиз с SemVer-тегом, например `v2.1.0` или `v2.2.0-rc.1`. Workflow скачивает тег и историю Git, затем выполняет в `frontend/`:
-
-```bash
-pnpm version from-git --no-git-tag-version
-```
-
-Версия берётся из Git, без создания нового коммита или тега. Перед публикацией workflow проверяет её совпадение с тегом релиза. Стабильные версии публикуются с npm dist-tag `latest`, prerelease — с `next`. Упаковка выполняется через `pnpm pack --dry-run`, публикация — через `pnpm publish --no-git-checks`: проверки ветки и чистоты отключены, поскольку workflow работает на теге и меняет версию только в рабочем каталоге CI.
-
-Пакет содержит `module.init.js`, компоненты, переводы, метаданные и копию этого README. Файлы менеджеров пакетов и локального окружения исключены списком `files` в `frontend/package.json`. Отдельная сборка не требуется: исходники модуля компилируются вместе с frontend Cattr. Уже опубликованную версию npm повторно опубликовать нельзя; для следующего выпуска нужен новый тег версии.
-
-## Лицензия
-
-В `composer.json` и `frontend/package.json` указана лицензия `SSPL-1.0` — [Server Side Public License 1.0](https://www.mongodb.com/legal/licensing/server-side-public-license).
+The module is released under `SSPL-1.0` — the [Server Side Public License 1.0](https://www.mongodb.com/legal/licensing/server-side-public-license).

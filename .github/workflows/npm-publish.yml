@@ -59,9 +59,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Prepare package
-        run: |
-          cp ../README.md README.md
-          pnpm pack --dry-run
+        run: pnpm pack --dry-run
 
       - name: Publish package
         run: pnpm publish --no-git-checks --access public --tag "$NPM_DIST_TAG"
