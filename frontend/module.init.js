@@ -1,6 +1,4 @@
 import * as app from '@/App';
-import * as screenshot from '@/components/Screenshot';
-import * as screenshotModal from '@/components/ScreenshotModal';
 import * as login from '@/views/Auth/Login';
 import * as account from '@/modules/Users/sections/account';
 import * as users from '@/modules/Users/sections/users';
@@ -40,10 +38,6 @@ export function init(context, router) {
     const usersFieldsToDelete = ['email', 'change-password', 'password'];
     users.config.fieldsToFillProvider = () =>
         users.fieldsToFillProvider().filter(field => usersFieldsToDelete.indexOf(field.key) === -1);
-
-    // Modify screenshot paths
-    screenshot.config.thumbnailPathProvider = screenshot => `uploads/screenshots/thumbs/${screenshot.id}`;
-    screenshotModal.config.screenshotPathProvider = screenshot => `uploads/screenshots/${screenshot.id}`;
 
     context.addLocalizationData({
         en: require('./locales/en'),
