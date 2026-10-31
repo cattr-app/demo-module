@@ -3,18 +3,18 @@
 namespace Modules\Demo\Providers;
 
 use App\Contracts\ScreenshotService;
-use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 use Modules\Demo\Services\DemoScreenshotService;
 
-class DemoScreenshotServiceProvider extends ServiceProvider implements DeferrableProvider
+class DemoScreenshotServiceProvider extends ServiceProvider
 {
-    public function provides(): array
+    public function register(): void
     {
-        return [ScreenshotService::class];
+        // The core binds ScreenshotService in a deferred provider that is loaded after module providers
+        // and would replace a plain binding, so the module decorates the resolved service instead.
+        $this->app->extend(
+            ScreenshotService::class,
+            fn () => $this->app->make(DemoScreenshotService::class)
+        );
     }
-
-    public array $bindings = [
-        ScreenshotService::class => DemoScreenshotService::class,
-    ];
 }
