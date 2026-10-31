@@ -28,6 +28,9 @@ class DemoCatalog
                 ['Dark theme', 10],
                 ['Prepare the App Store release', 6],
                 ['Biometric sign-in', 8],
+        ['Reduce the app bundle size', 6],
+        ['Accessibility audit of the main screens', 8],
+        ['Crash reporting dashboard', 4],
             ],
         ],
         'website' => [
@@ -41,6 +44,9 @@ class DemoCatalog
                 ['Improve Lighthouse score', 8],
                 ['Contact form with spam protection', 5],
                 ['Localize the website', 14],
+        ['Customer stories section', 6],
+        ['Cookie consent banner', 3],
+        ['A/B test the signup button', 4],
             ],
         ],
         'support' => [
@@ -52,6 +58,9 @@ class DemoCatalog
                 ['Onboarding calls with new customers', null],
                 ['Monthly support report', 4],
                 ['Video tutorials for the desktop app', 16],
+        ['Triage the bug reports backlog', null],
+        ['Macros for common ticket replies', 5],
+        ['Customer satisfaction survey', 6],
             ],
         ],
         'infrastructure' => [
@@ -64,6 +73,9 @@ class DemoCatalog
                 ['Upgrade Kubernetes cluster', 12],
                 ['Reduce cloud costs', 8],
                 ['Move screenshots to S3', 10],
+        ['Rotate TLS certificates', 2],
+        ['Staging environment refresh', 5],
+        ['Log retention policy', 3],
             ],
         ],
         'marketing' => [
@@ -75,6 +87,9 @@ class DemoCatalog
                 ['Social media content for the month', 10],
                 ['Case study with a customer', 8],
                 ['Webinar: getting started with Cattr', 6],
+        ['Refresh the product screenshots', 4],
+        ['Partner program landing page', 8],
+        ['Plan the conference booth', 6],
             ],
         ],
     ];
@@ -122,6 +137,22 @@ class DemoCatalog
         'Done on my side, ready for review.',
         'Can we discuss this at the stand-up?',
         'Added screenshots and steps to reproduce.',
+        'Reproduced on staging, looking into it.',
+        'Could someone from design check the latest mockups?',
+        'Split this into two smaller tasks, the second one is in the backlog.',
+        'Tests are green, merging after lunch.',
+        'The customer confirmed the fix works for them.',
+        'Found the root cause: a race condition in the sync job.',
+        'Paired on this with the backend team, much faster than expected.',
+        'Need one more day, the edge cases took longer.',
+        'Updated the estimate after the spike.',
+        'Left a few questions in the spec, nothing blocking.',
+        'Deployed to production, monitoring the error rate.',
+        'Reverted for now, will retry with a smaller change.',
+        'Shared the numbers in the weekly report.',
+        'Thanks, this unblocks the release!',
+        'Moving this to the next sprint.',
+        'Recorded a short video of the new flow.',
     ];
 
     /**
@@ -151,6 +182,18 @@ class DemoCatalog
         ['Feature "{name}": research and prototype', 12],
         ['Release notes for "{name}"', 3],
         ['Roll out "{name}" behind a feature flag', 5],
+        ['Hotfix "{name}": patch the regression', 3],
+        ['Demo of "{name}" to the team', 1],
+        ['Load testing for "{name}"', 6],
+        ['Security review of "{name}"', 4],
+        ['Migration plan for "{name}"', 5],
+        ['Collect beta feedback on "{name}"', 4],
+        ['Clean up after "{name}": remove old flags', 3],
+        ['Write the design doc for "{name}"', 6],
+        ['Post-mortem: "{name}" outage', 2],
+        ['Kick-off meeting for "{name}"', 1],
+        ['Prepare "{name}" for code freeze', 4],
+        ['Update dashboards for "{name}" metrics', 3],
     ];
 
     public static function teamEmail(string $key): string
