@@ -20,7 +20,8 @@ use Random\Randomizer;
 /**
  * Creates the demo company from DemoCatalog: the login accounts (see DemoAccounts),
  * the team, projects with tasks and comments. Passwords are random: the accounts are signed in only
- * through the demo login. A fixed seed builds the same company on every reset.
+ * through the demo login. A fixed seed builds the same company on every reset, only the code names
+ * in task names change.
  */
 class DemoSeeder extends Seeder
 {
@@ -32,6 +33,8 @@ class DemoSeeder extends Seeder
     private const COMMENT_CHANCE = 40;
 
     private Randomizer $random;
+    /** Code names and their task templates are new on every reset */
+    private Randomizer $codenameRandom;
 
     /** @var array<string, array<int, Role>> project key => user ID => project role */
     private array $members = [];
@@ -39,6 +42,7 @@ class DemoSeeder extends Seeder
     public function run(): void
     {
         $this->random = new Randomizer(new Mt19937(self::SEED));
+        $this->codenameRandom = new Randomizer();
 
         $this->createAccounts();
         $this->createTeam();
@@ -112,7 +116,7 @@ class DemoSeeder extends Seeder
             ?: User::firstWhere('email', DemoAccounts::email('admin'))->id;
 
         $tasks = $project['tasks'];
-        foreach ($this->random->pickArrayKeys(DemoCatalog::CODENAME_TASKS, self::CODENAME_TASKS_PER_PROJECT) as $i => $template) {
+        foreach ($this->codenameRandom->pickArrayKeys(DemoCatalog::CODENAME_TASKS, self::CODENAME_TASKS_PER_PROJECT) as $i => $template) {
             [$name, $estimate] = DemoCatalog::CODENAME_TASKS[$template];
             $tasks[] = [str_replace('{name}', $codenames[$i], $name), $estimate];
         }
@@ -171,8 +175,8 @@ class DemoSeeder extends Seeder
         $nouns = DemoCatalog::CODENAME_NOUNS;
 
         while (count($names) < $count) {
-            $adjective = $adjectives[$this->random->getInt(0, count($adjectives) - 1)];
-            $noun = $nouns[$this->random->getInt(0, count($nouns) - 1)];
+            $adjective = $adjectives[$this->codenameRandom->getInt(0, count($adjectives) - 1)];
+            $noun = $nouns[$this->codenameRandom->getInt(0, count($nouns) - 1)];
 
             // Both lists have "Fjord"
             if ($adjective !== $noun) {
