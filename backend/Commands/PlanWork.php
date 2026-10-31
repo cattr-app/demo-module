@@ -65,6 +65,9 @@ class PlanWork extends Command
 
         $this->table(['Worker', 'Timezone', 'Local time at work', 'Planned hours', 'Extra hours'], $rows);
 
+        // A day that skips an hour (DST) leaves it unvisited
+        $atWork = array_filter($atWork, static fn (int $count) => $count !== PHP_INT_MAX);
+
         $this->line('Fewest people at work per hour (application timezone): ' . implode(', ', array_map(
             static fn (int $hour, int $count) => sprintf('%02d:00 %d', $hour, $count),
             array_keys($atWork),

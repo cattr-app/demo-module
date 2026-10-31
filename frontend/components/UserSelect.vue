@@ -3,11 +3,15 @@
         <div class="input-group">
             <p v-t="'demo.auth_message'"></p>
 
-            <at-select v-model="role">
-                <at-option v-for="account in accounts" :key="account" :value="account">
-                    {{ $t(`demo.accounts.${account}`) }}
-                </at-option>
-            </at-select>
+            <!-- Blocks the login form until an account is selected (the accounts may still be loading) -->
+            <validation-provider v-slot="{ errors }" rules="required" mode="passive" :name="$t('demo.account')">
+                <at-select v-model="role">
+                    <at-option v-for="account in accounts" :key="account" :value="account">
+                        {{ $t(`demo.accounts.${account}`) }}
+                    </at-option>
+                </at-select>
+                <small>{{ errors[0] }}</small>
+            </validation-provider>
         </div>
 
         <div class="input-group">
@@ -20,6 +24,7 @@
     import i18n from '@/i18n';
     import { getUserLang, getLangCookie, setLangCookie } from '@/i18n';
     import LanguageSelector from '@/components/LanguageSelector';
+    import { ValidationProvider } from 'vee-validate';
     import { getDemoInfo } from '../services/demo.service';
 
     const RETRY_MS = 5000;
@@ -29,6 +34,7 @@
 
         components: {
             LanguageSelector,
+            ValidationProvider,
         },
 
         data() {

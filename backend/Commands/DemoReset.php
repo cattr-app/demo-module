@@ -87,13 +87,19 @@ class DemoReset extends Command
             }
 
             $days = config('demo.history_days');
-            $created = $emulator->backfill(now()->subDays($days)->startOfDay(), now());
+            $backfilledTo = now();
+            $created = $emulator->backfill($backfilledTo->copy()->subDays($days)->startOfDay(), $backfilledTo);
             $this->info("Emulated $created intervals for $days days and today");
 
             DemoSeeder::calibrateEstimates();
 
             // Totals of tracked time per task and user, which the bulk insert does not update
             $this->callSilently(RecreateCronTaskWorkers::class);
+
+            // Slots that ended while the reset ran: the scheduler's emulator runs skipped them
+            for ($end = WorkEmulator::slotEnd($backfilledTo)->addMinutes(WorkEmulator::SLOT_MINUTES); $end <= now(); $end = $end->addMinutes(WorkEmulator::SLOT_MINUTES)) {
+                $emulator->emulateSlot($end);
+            }
         } finally {
             if (!$wasDown) {
                 $this->call(UpCommand::class);

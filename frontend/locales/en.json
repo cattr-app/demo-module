@@ -13,6 +13,7 @@
     "reset": {
       "title": "The demo is being reset",
       "message": "Fresh demo data will be ready in a few seconds. The page reloads by itself."
-    }
+    },
+    "account": "Account"
   }
 }
