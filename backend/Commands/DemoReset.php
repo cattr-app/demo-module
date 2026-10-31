@@ -2,9 +2,9 @@
 
 namespace Modules\Demo\Commands;
 
+use App\Console\Commands\RecreateCronTaskWorkers;
 use App\Console\Commands\ResetCommand;
 use App\Contracts\ScreenshotService;
-use Cache;
 use Cron\CronExpression;
 use Illuminate\Console\Command;
 use Illuminate\Database\Console\Seeds\SeedCommand;
@@ -42,7 +42,7 @@ class DemoReset extends Command
         $this->call(DownCommand::class);
 
         try {
-            // Only the core's initial data: the demo accounts and projects come from the module seeder
+            // Only the core's initial data: the demo company comes from the module seeder
             $this->call(ResetCommand::class, [
                 '--force' => true,
                 '--images' => true,
@@ -57,10 +57,12 @@ class DemoReset extends Command
                 $screenshotService->ensurePool();
             }
 
-            $this->call(PlanWork::class);
+            $days = config('demo.history_days');
+            $created = $emulator->backfill(now()->subDays($days)->startOfDay(), now());
+            $this->info("Emulated $created intervals for $days days and today");
 
-            $created = $emulator->backfill(now()->startOfDay(), now(), Cache::get(WorkEmulator::PLAN_CACHE_KEY, []));
-            $this->info("Emulated $created intervals since midnight");
+            // Totals of tracked time per task and user, which the bulk insert does not update
+            $this->callSilently(RecreateCronTaskWorkers::class);
         } finally {
             $this->call(UpCommand::class);
         }

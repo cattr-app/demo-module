@@ -55,12 +55,40 @@ class DemoAccounts
     }
 
     /**
-     * Accounts whose work the emulator imitates: everyone except the administrator.
+     * Profile of a demo user the emulator imitates: the login accounts except the administrator
+     * work in the application timezone, team members in their own.
+     *
+     * @return array{timezone: ?string, shift: int, profile: string}|null
+     */
+    public static function workProfile(string $email): ?array
+    {
+        foreach (DemoCatalog::ACCOUNT_PERSONAS as $key => $persona) {
+            if ($key !== 'admin' && self::email($key) === $email) {
+                return ['timezone' => null, 'shift' => 9, 'profile' => $persona['profile']];
+            }
+        }
+
+        foreach (DemoCatalog::TEAM as $key => $member) {
+            if (DemoCatalog::teamEmail($key) === $email) {
+                return ['timezone' => $member['timezone'], 'shift' => $member['shift'], 'profile' => $member['profile']];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Demo users whose work the emulator imitates, see workProfile().
      *
      * @return Collection<int, User>
      */
     public static function workers(): Collection
     {
-        return User::whereIn('email', self::emails())->where('role_id', '!=', Role::ADMIN)->get();
+        $emails = array_merge(
+            array_map(self::email(...), array_diff(self::keys(), ['admin'])),
+            array_map(DemoCatalog::teamEmail(...), array_keys(DemoCatalog::TEAM)),
+        );
+
+        return User::whereIn('email', $emails)->orderBy('id')->get();
     }
 }

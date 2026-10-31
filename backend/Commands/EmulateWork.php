@@ -2,7 +2,6 @@
 
 namespace Modules\Demo\Commands;
 
-use Cache;
 use Illuminate\Console\Command;
 use Modules\Demo\Services\WorkEmulator;
 
@@ -27,16 +26,12 @@ class EmulateWork extends Command
 
     public function handle(WorkEmulator $emulator): int
     {
-        // A reset is in progress; it emulates the day so far by itself
+        // A reset is in progress; it fills in the time so far by itself
         if ($this->laravel->isDownForMaintenance()) {
             return 0;
         }
 
-        if (!Cache::get(WorkEmulator::PLAN_CACHE_KEY)) {
-            $this->call(PlanWork::class);
-        }
-
-        $emulator->emulateSlot(now(), Cache::get(WorkEmulator::PLAN_CACHE_KEY, []));
+        $emulator->emulateSlot(now());
 
         return 0;
     }

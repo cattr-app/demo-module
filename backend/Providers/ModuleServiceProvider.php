@@ -18,6 +18,8 @@ class ModuleServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->mergeConfigFrom(__DIR__ . '/../Config/config.php', 'demo');
+
         $this->commands([
             DemoReset::class,
             EmulateWork::class,

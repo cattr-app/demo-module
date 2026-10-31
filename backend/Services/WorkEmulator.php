@@ -2,74 +2,88 @@
 
 namespace Modules\Demo\Services;
 
-use App\Models\Task;
 use App\Models\TimeInterval;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Modules\Demo\Support\DemoCatalog;
+use Random\Engine\Mt19937;
+use Random\Randomizer;
 
 /**
- * Turns the work plan (see PlanWork) into tracked time: one interval per user and five-minute slot.
- *
- * Plan entries are minutes of the day in the application timezone, `end` is exclusive,
- * and an entry with `end` < `start` continues past midnight.
+ * Turns the work schedule (see WorkSchedule) into tracked time: one interval per worker and
+ * five-minute slot, keeping at least `demo.min_online` people at work.
  */
 class WorkEmulator
 {
-    public const SLOT_MINUTES = 5;
-    public const PLAN_CACHE_KEY = 'usersPlan';
+    public const SLOT_MINUTES = WorkSchedule::SLOT_MINUTES;
+    private const INSERT_CHUNK = 1000;
+
+    public function __construct(private readonly WorkSchedule $schedule)
+    {
+    }
 
     /**
-     * Create the intervals of the slot that ends at $at (rounded down to the slot boundary)
-     * for everyone the plan schedules for it. Slots that already have an interval are skipped,
-     * so a slot can be emulated more than once.
+     * Create the intervals of the slot that ends at $at (rounded down to the slot boundary).
+     * Workers who already have time in the slot are skipped, so a slot can be emulated more than once.
      *
      * @return int number of created intervals
      */
-    public function emulateSlot(CarbonInterface $at, array $plan): int
+    public function emulateSlot(CarbonInterface $at): int
     {
         $end = self::slotEnd($at);
         $start = $end->subMinutes(self::SLOT_MINUTES);
-        $minute = $start->hour * 60 + $start->minute;
-
         $created = 0;
 
-        foreach ($plan as $entry) {
-            foreach ($entry['intervals'] as $interval) {
-                if (!self::covers($interval, $minute)) {
-                    continue;
-                }
-
-                if ($this->slotIsTaken($entry['user'], $end)
-                    || !Task::withoutGlobalScopes()->whereKey($interval['task'])->exists()) {
-                    break;
-                }
-
-                TimeInterval::factory()->create([
-                    'task_id' => $interval['task'],
-                    'user_id' => $entry['user'],
-                    'start_at' => $start,
-                    'end_at' => $end,
-                ]);
-
-                $created++;
-                break;
+        foreach ($this->schedule->activeAt($start, $this->minOnline()) as $userId => $work) {
+            if ($this->slotIsTaken($userId, $start, $end)) {
+                continue;
             }
+
+            TimeInterval::factory()->create($this->interval($userId, $work, $start, $end));
+            User::whereKey($userId)->update(['last_activity' => $end]);
+
+            $created++;
         }
 
         return $created;
     }
 
     /**
-     * Emulate every slot that ends in ($from, $to].
+     * Emulate every slot that ends in ($from, $to] with bulk inserts, bypassing model events.
+     * Meant for a freshly reset database: existing intervals are not checked, and the reset
+     * rebuilds the tracked time totals afterwards (cattr:task:recreate-workers).
      *
      * @return int number of created intervals
      */
-    public function backfill(CarbonInterface $from, CarbonInterface $to, array $plan): int
+    public function backfill(CarbonInterface $from, CarbonInterface $to): int
     {
+        $rows = [];
+        $lastActivity = [];
         $created = 0;
+        $now = now()->toDateTimeString();
+        $minOnline = $this->minOnline();
 
         for ($end = self::slotEnd($from)->addMinutes(self::SLOT_MINUTES); $end <= $to; $end = $end->addMinutes(self::SLOT_MINUTES)) {
-            $created += $this->emulateSlot($end, $plan);
+            $start = $end->subMinutes(self::SLOT_MINUTES);
+
+            foreach ($this->schedule->activeAt($start, $minOnline) as $userId => $work) {
+                $interval = $this->interval($userId, $work, $start, $end);
+                $interval['start_at'] = $interval['start_at']->toDateTimeString();
+                $interval['end_at'] = $interval['end_at']->toDateTimeString();
+                $rows[] = $interval + ['created_at' => $now, 'updated_at' => $now];
+                $lastActivity[$userId] = $end;
+            }
+
+            if (count($rows) >= self::INSERT_CHUNK) {
+                $created += $this->insert($rows);
+            }
+        }
+
+        $created += $this->insert($rows);
+
+        foreach ($lastActivity as $userId => $at) {
+            User::whereKey($userId)->update(['last_activity' => $at]);
         }
 
         return $created;
@@ -82,22 +96,58 @@ class WorkEmulator
         return $at->subMinutes($at->minute % self::SLOT_MINUTES);
     }
 
-    /** Whether the plan entry covers the slot starting at the given minute of the day */
-    private static function covers(array $interval, int $minute): bool
+    /** @param array{task: int, manual: bool} $work */
+    private function interval(int $userId, array $work, CarbonImmutable $start, CarbonImmutable $end): array
     {
-        ['start' => $start, 'end' => $end] = $interval;
+        $interval = [
+            'task_id' => $work['task'],
+            'user_id' => $userId,
+            'start_at' => $start,
+            'end_at' => $end,
+            'is_manual' => $work['manual'],
+            'mouse_fill' => null,
+            'keyboard_fill' => null,
+            'activity_fill' => null,
+        ];
 
-        return $start <= $end
-            ? $minute >= $start && $minute < $end
-            : $minute >= $start || $minute < $end;
+        if ($work['manual']) {
+            return $interval;
+        }
+
+        $worker = $this->schedule->workers()[$userId];
+        $profile = DemoCatalog::ACTIVITY_PROFILES[$worker['profile']];
+        $random = new Randomizer(new Mt19937(crc32($userId . '|' . $start->timestamp)));
+
+        $interval['keyboard_fill'] = $random->getInt(...$profile['keyboard']);
+        $interval['mouse_fill'] = $random->getInt(...$profile['mouse']);
+        $interval['activity_fill'] = intdiv($interval['keyboard_fill'] + $interval['mouse_fill'], 2);
+
+        return $interval;
     }
 
-    private function slotIsTaken(int $userId, CarbonImmutable $end): bool
+    private function insert(array &$rows): int
+    {
+        $count = count($rows);
+
+        if ($count) {
+            TimeInterval::insert($rows);
+            $rows = [];
+        }
+
+        return $count;
+    }
+
+    private function slotIsTaken(int $userId, CarbonImmutable $start, CarbonImmutable $end): bool
     {
         return TimeInterval::withoutGlobalScopes()
             ->where('user_id', $userId)
             ->where('start_at', '<', $end)
-            ->where('end_at', '>', $end->subMinutes(self::SLOT_MINUTES))
+            ->where('end_at', '>', $start)
             ->exists();
+    }
+
+    private function minOnline(): int
+    {
+        return (int)config('demo.min_online');
     }
 }
