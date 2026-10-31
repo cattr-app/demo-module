@@ -73,8 +73,12 @@
                     await this.$nextTick();
                     this.role = this.accounts[0] ?? null;
                 } catch (e) {
-                    // The backend may be down for a reset: keep trying until it answers
                     this.accounts = [];
+                }
+
+                // The backend may be down for a reset, or answer before the accounts are seeded:
+                // keep trying until there is an account to sign in with
+                if (!this.accounts.length) {
                     this.retryTimeout = setTimeout(() => this.loadAccounts(true), RETRY_MS);
                 }
             },
