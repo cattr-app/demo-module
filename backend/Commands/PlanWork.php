@@ -2,13 +2,12 @@
 
 namespace Modules\Demo\Commands;
 
-use App\Enums\Role;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Console\Command;
 use Cache;
-use Psr\SimpleCache\InvalidArgumentException;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Demo\Services\WorkEmulator;
+use Modules\Demo\Support\DemoAccounts;
 
 /**
  * Class PlanWork
@@ -29,7 +28,7 @@ class PlanWork extends Command
      */
     protected $description = 'Cattr Planning of the work (only for demo)';
 
-    // 1440 - limit of the time at a day
+    // Minutes of the day (0-1439), `end` is exclusive; an entry with `end` < `start` continues past midnight
 
     private array $plans = [
         [['start' => 540, 'end' => 780], ['start' => 840, 'end' => 1080]],
@@ -188,11 +187,10 @@ class PlanWork extends Command
      * Execute the console command.
      *
      * @return int
-     * @throws InvalidArgumentException
      */
     public function handle(): int
     {
-        $users = User::where('role_id', '!=', Role::ADMIN)->get()->toArray();
+        $users = DemoAccounts::workers()->toArray();
 
         $plan = [];
         $plans = $this->plans;
@@ -200,7 +198,7 @@ class PlanWork extends Command
         while (count($users)) {
             $user = $this->getRandomValue($users);
 
-            $tasks = Task::whereHas('users', function (Builder $query) use ($user) {
+            $tasks = Task::withoutGlobalScopes()->whereHas('users', function (Builder $query) use ($user) {
                 $query->where('id', '=', $user['id']);
             })->get()->toArray();
 
@@ -220,7 +218,7 @@ class PlanWork extends Command
             ];
         }
 
-        Cache::set('usersPlan', $plan);
+        Cache::forever(WorkEmulator::PLAN_CACHE_KEY, $plan);
 
         return 0;
     }

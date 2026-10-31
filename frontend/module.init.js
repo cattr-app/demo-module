@@ -26,8 +26,9 @@ export const ModuleConfig = {
 export function init(context, router) {
     app.config.beforeLayout = Timer;
 
-    // Replace form on the login page with a demo user select
+    // Replace form on the login page with a demo account select signed in without a password
     login.config.authInput = UserSelect;
+    login.config.loginEndpoint = '/demo/login';
 
     // Remove email and password fields in the account section
     const accountFieldsToDelete = ['email', 'password'];

@@ -3,9 +3,9 @@
         <div class="input-group">
             <p v-t="'demo.auth_message'"></p>
 
-            <at-select v-model="userIndex">
-                <at-option v-for="(credential, index) in credentials" :key="credential.user" :value="index">
-                    {{ credential.user }}
+            <at-select v-model="role">
+                <at-option v-for="account in accounts" :key="account" :value="account">
+                    {{ $t(`demo.accounts.${account}`) }}
                 </at-option>
             </at-select>
         </div>
@@ -19,8 +19,8 @@
 <script>
     import i18n from '@/i18n';
     import { getUserLang, getLangCookie, setLangCookie } from '@/i18n';
-    import { DEMO_CREDENTIALS } from '_app/etc/demo.credentials';
     import LanguageSelector from '@/components/LanguageSelector';
+    import { getDemoInfo } from '../services/demo.service';
 
     export default {
         name: 'UserSelect',
@@ -31,28 +31,31 @@
 
         data() {
             return {
-                credentials: DEMO_CREDENTIALS,
-                userIndex: null,
+                accounts: [],
+                role: null,
             };
         },
 
         computed: {
-            user() {
-                return this.credentials[this.userIndex];
-            },
             language() {
                 return getLangCookie() || getUserLang();
             },
         },
 
         watch: {
-            userIndex(value) {
-                this.$emit('change', this.user);
+            role(value) {
+                // Posted to the demo login endpoint (see module.init.js), no password is needed
+                this.$emit('change', { role: value });
             },
         },
 
-        mounted() {
-            this.userIndex = 0;
+        async mounted() {
+            try {
+                ({ accounts: this.accounts } = await getDemoInfo());
+                this.role = this.accounts[0] ?? null;
+            } catch (e) {
+                this.accounts = [];
+            }
         },
 
         methods: {

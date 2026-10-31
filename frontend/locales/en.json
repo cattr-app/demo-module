@@ -1,6 +1,14 @@
 {
   "demo": {
     "warning": "This is only a demo application / All the data will be erased in {timer}",
-    "auth_message": "Please select user that you want to test from the list"
+    "auth_message": "Please select user that you want to test from the list",
+    "accounts": {
+      "admin": "Administrator",
+      "manager": "Manager",
+      "auditor": "Company auditor",
+      "project_manager": "Project manager",
+      "project_auditor": "Project auditor",
+      "user": "User"
+    }
   }
 }
