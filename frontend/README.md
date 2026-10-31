@@ -8,6 +8,7 @@ Use this extension on a dedicated demo instance together with the [Cattr Demo ba
 
 - A demo account selector on the login page instead of email and password fields; sign-in needs no password.
 - A banner with a reset warning and countdown.
+- An overlay with a spinner while a reset runs; the page reloads once the demo is back.
 - Hidden email and password fields in the profile and user editing forms.
 - English and Russian interface translations.
 
@@ -59,15 +60,16 @@ After rebuilding the interface, open the login page: the demo account selector a
 ## Implementation Notes
 
 - The timer in `components/Timer.vue` counts down to `next_reset_at` from `GET /api/demo/info` and requests it again once that time has passed, since the gap between resets changes with daylight saving time. Until the server answers, it counts to the next three-hour boundary in the browser's time zone.
-- If `GET /api/demo/info` fails, for example during a reset, the account selector retries every five seconds.
+- If `GET /api/demo/info` fails, for example during a reset, the account selector retries every five seconds. These background requests use their own Axios instance, so retries show no error notifications.
+- Any API response with status 503 means a reset is running: the overlay appears and the page reloads when `GET /api/demo/info` answers again. Signed-in visitors are signed out by Cattr on 503 and see the backend's reset page until the demo is back.
 - The client build contains no credentials: the selector sends only the account key.
 - Hidden fields do not replace Cattr's access controls; the backend part protects the demo accounts.
 
 ## Structure
 
 ```text
-components/                  # Timer and account selector
-services/                    # Demo info request
+components/                  # Banner (timer), reset overlay, and account selector
+services/                    # Demo info request and reset detection
 locales/                     # English and Russian translations
 module.init.js               # Interface extension registration
 package.json                 # Frontend package metadata

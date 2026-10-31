@@ -1,4 +1,9 @@
 import axios from 'axios';
+import { notifyReset } from './reset.service';
+
+// Without the app's global interceptors: retries of these background requests must not show
+// error notifications or the loading bar, nor log the visitor out
+const http = axios.create();
 
 let infoRequest = null;
 
@@ -10,11 +15,16 @@ let infoRequest = null;
  */
 export function getDemoInfo({ refresh = false } = {}) {
     if (!infoRequest || refresh) {
-        infoRequest = axios
-            .get('/demo/info', { ignoreCancel: true })
+        infoRequest = http
+            .get('/demo/info', { baseURL: axios.defaults.baseURL })
             .then(({ data }) => data.data)
             .catch(error => {
                 infoRequest = null;
+
+                if (error && error.response && error.response.status === 503) {
+                    notifyReset();
+                }
+
                 throw error;
             });
     }

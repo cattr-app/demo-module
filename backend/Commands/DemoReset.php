@@ -29,6 +29,7 @@ class DemoReset extends Command
     public const LOCK = 'demo:reset';
     private const LOCK_SECONDS = 900;
     private const LOCK_WAIT_SECONDS = 60;
+    private const PAGE_REFRESH_SECONDS = 5;
 
     /**
      * The name and signature of the console command.
@@ -61,7 +62,12 @@ class DemoReset extends Command
         $wasDown = $this->laravel->isDownForMaintenance();
 
         if (!$wasDown) {
-            $this->call(DownCommand::class);
+            // Visitors get a "being reset" page that reloads itself until the demo is back
+            $this->call(DownCommand::class, [
+                '--render' => 'demo::reset',
+                '--refresh' => self::PAGE_REFRESH_SECONDS,
+                '--retry' => self::PAGE_REFRESH_SECONDS,
+            ]);
         }
 
         try {
@@ -83,6 +89,8 @@ class DemoReset extends Command
             $days = config('demo.history_days');
             $created = $emulator->backfill(now()->subDays($days)->startOfDay(), now());
             $this->info("Emulated $created intervals for $days days and today");
+
+            DemoSeeder::calibrateEstimates();
 
             // Totals of tracked time per task and user, which the bulk insert does not update
             $this->callSilently(RecreateCronTaskWorkers::class);

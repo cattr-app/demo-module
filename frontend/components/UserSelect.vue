@@ -63,6 +63,8 @@
             async loadAccounts(refresh = false) {
                 try {
                     ({ accounts: this.accounts } = await getDemoInfo({ refresh }));
+                    // The select shows the label only for an option that is already rendered
+                    await this.$nextTick();
                     this.role = this.accounts[0] ?? null;
                 } catch (e) {
                     // The backend may be down for a reset: keep trying until it answers

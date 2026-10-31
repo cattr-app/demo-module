@@ -2,8 +2,9 @@ import * as app from '@/App';
 import * as login from '@/views/Auth/Login';
 import * as account from '@/modules/Users/sections/account';
 import * as users from '@/modules/Users/sections/users';
-import Timer from './components/Timer';
+import DemoBar from './components/DemoBar';
 import UserSelect from './components/UserSelect';
+import { watchForReset } from './services/reset.service';
 
 /**
  * ModuleConfig - used as module configuration section to manipulate module loading settings
@@ -24,7 +25,9 @@ export const ModuleConfig = {
  * @returns {context}
  */
 export function init(context, router) {
-    app.config.beforeLayout = Timer;
+    // Reset countdown and the overlay shown while a reset runs
+    app.config.beforeLayout = DemoBar;
+    watchForReset();
 
     // Replace form on the login page with a demo account select signed in without a password
     login.config.authInput = UserSelect;

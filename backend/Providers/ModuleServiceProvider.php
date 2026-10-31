@@ -30,6 +30,7 @@ class ModuleServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'demo');
 
         $this->app->booted(static function () {
             $schedule = app(Schedule::class);

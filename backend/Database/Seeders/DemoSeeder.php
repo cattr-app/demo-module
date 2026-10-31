@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Status;
 use App\Models\Task;
 use App\Models\TaskComment;
+use App\Models\TimeInterval;
 use App\Models\User;
 use App\Services\ProjectMemberService;
 use Illuminate\Database\Seeder;
@@ -185,6 +186,32 @@ class DemoSeeder extends Seeder
         }
 
         return array_values($names);
+    }
+
+    /**
+     * Fit the estimates to the tracked history: catalog estimates are hours, while two weeks of
+     * history put dozens of hours on a task, which would mark nearly every task as overtime.
+     * Each estimate becomes the tracked time times a factor between 0.8 and 2.5 (per task), so
+     * about one task in seven is over its estimate.
+     */
+    public static function calibrateEstimates(): void
+    {
+        $tracked = TimeInterval::withoutGlobalScopes()
+            ->selectRaw('task_id, SUM(TIMESTAMPDIFF(SECOND, start_at, end_at)) AS seconds')
+            ->groupBy('task_id')
+            ->pluck('seconds', 'task_id');
+
+        Task::withoutGlobalScopes()->whereNotNull('estimate')->each(static function (Task $task) use ($tracked) {
+            $seconds = (int)($tracked[$task->id] ?? 0);
+
+            if ($seconds === 0) {
+                return;
+            }
+
+            $factor = (new Randomizer(new Mt19937(self::SEED + $task->id)))->getInt(80, 250) / 100;
+            $task->estimate = max(3600, (int)round($seconds * $factor / 3600) * 3600);
+            $task->saveQuietly();
+        });
     }
 
     private function chance(int $percent): bool
