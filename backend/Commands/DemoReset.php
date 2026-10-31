@@ -5,7 +5,9 @@ namespace Modules\Demo\Commands;
 use App\Console\Commands\RecreateCronTaskWorkers;
 use App\Console\Commands\ResetCommand;
 use App\Contracts\ScreenshotService;
+use Cache;
 use Cron\CronExpression;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Console\Command;
 use Illuminate\Database\Console\Seeds\SeedCommand;
 use Illuminate\Foundation\Console\DownCommand;
@@ -23,6 +25,11 @@ class DemoReset extends Command
     /** When the scheduler resets the demo */
     public const SCHEDULE = '0 */3 * * *';
 
+    /** Lock shared with the emulator, so resets and emulator runs never write at the same time */
+    public const LOCK = 'demo:reset';
+    private const LOCK_SECONDS = 900;
+    private const LOCK_WAIT_SECONDS = 60;
+
     /**
      * The name and signature of the console command.
      *
@@ -39,7 +46,23 @@ class DemoReset extends Command
 
     public function handle(ScreenshotService $screenshotService, WorkEmulator $emulator): int
     {
-        $this->call(DownCommand::class);
+        $lock = Cache::lock(self::LOCK, self::LOCK_SECONDS);
+
+        try {
+            // An emulator run holds the lock for a moment; another reset holds it until it finishes
+            $lock->block(self::LOCK_WAIT_SECONDS);
+        } catch (LockTimeoutException) {
+            $this->warn('Another demo reset is running');
+
+            return 1;
+        }
+
+        // A reset started in a separate maintenance window leaves the application down
+        $wasDown = $this->laravel->isDownForMaintenance();
+
+        if (!$wasDown) {
+            $this->call(DownCommand::class);
+        }
 
         try {
             // Only the core's initial data: the demo company comes from the module seeder
@@ -64,7 +87,11 @@ class DemoReset extends Command
             // Totals of tracked time per task and user, which the bulk insert does not update
             $this->callSilently(RecreateCronTaskWorkers::class);
         } finally {
-            $this->call(UpCommand::class);
+            if (!$wasDown) {
+                $this->call(UpCommand::class);
+            }
+
+            $lock->release();
         }
 
         return 0;

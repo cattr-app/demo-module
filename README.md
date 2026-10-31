@@ -9,7 +9,7 @@ For the demo account selector, reset banner, and interface setup, see the [front
 ## Features
 
 - **Demo company.** The module seeder creates one login account per role (administrator, manager, company auditor, project manager, project auditor, user), a team of 14 people in timezones from Los Angeles to Auckland, and five projects with tasks, estimates, due dates and comments. A few tasks per project carry code names such as `Release "Swift Raven": final QA`, new on every reset. Passwords are random. The core seeders are not used, apart from the core's initial data. The content is in English.
-- **Passwordless login.** `GET /api/demo/info` lists the account keys and the next reset time; `POST /api/demo/login` with `{"role": "<key>"}` returns the same token response as `/auth/login`. No passwords are stored in the module, in the core, or in the client build.
+- **Passwordless login.** `GET /api/demo/info` lists the keys of the accounts that can sign in and the next reset time; `POST /api/demo/login` with `{"role": "<key>"}` returns the same token response as `/auth/login`. No passwords are stored in the module, in the core, or in the client build.
 - **Protected accounts.** Requests to `users/edit` cannot change the email, password, role, or active flag of a demo account, and `users/remove` refuses to delete one. Passwords are removed from every user edit request.
 - **Work emulation.** Everyone except the administrator and the project auditor has a working day of about eight hours in their own timezone, with lunch, short breaks, task switches, an occasional manual meeting interval, days off and an activity profile. Every five minutes the past slot gets an interval for each worker. When fewer than three people would be at work, team members whose local time allows take an extra hour, so somebody is always online. A reset fills in the past 14 days and today at once.
 - **Screenshot placeholders.** Every interval is served one of 10 colored placeholders, chosen by the interval ID. The disk (local or S3) holds 10 originals and 10 thumbnails however many intervals there are. Uploaded screenshots are discarded, and deleting an interval keeps the shared files.
@@ -56,7 +56,7 @@ Optional settings:
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `DEMO_HISTORY_DAYS` | `14` | Days of tracked time a reset fills in before today |
-| `DEMO_MIN_ONLINE` | `3` | Minimum number of people at work; team members take extra hours to keep it |
+| `DEMO_MIN_ONLINE` | `3` | Target number of people at work. When fewer would be, team members whose local time is between 07:00 and 22:00 take extra hours; a target above what they can cover is met as far as possible |
 
 To build a Docker image with the module, follow [Building an image with modules](https://github.com/cattr-app/server-application/blob/main/CONTRIBUTING.md#building-an-image-with-modules) in the Cattr development guide.
 
@@ -84,11 +84,11 @@ Do not add a second scheduler if one is already running in the application envir
 | --- | --- | --- |
 | `php artisan cattr:demo:reset` | Clears and reseeds the demo instance and fills in the tracked time of the past days | Every three hours: 00:00, 03:00, 06:00, and so on |
 | `php artisan cattr:demo:emulate` | Creates intervals for the past five-minute slot for everyone at work in it | Every five minutes, in the background, with overlapping runs prevented |
-| `php artisan cattr:demo:plan [date]` | Shows the working hours of every worker for a day and how many people are at work each hour | Manual only |
+| `php artisan cattr:demo:plan [date]` | Shows every worker's periods at work for a day (local time), planned and extra hours, and the fewest people at work each hour | Manual only |
 
 The schedule is registered in `backend/Providers/ModuleServiceProvider.php`. The reset uses the cron expression `0 */3 * * *` (`DemoReset::SCHEDULE`), rather than counting three hours from application startup. Execution times follow the application timezone (the company timezone setting); the scheduler uses `app.schedule_timezone` when it is set. The login accounts work in the application timezone, team members in their own.
 
-The work schedule is not stored: it is derived from each worker's email and the date, so the history filled in by a reset and the intervals added later follow the same days. The emulator skips workers who already have time in the slot and does nothing while the application is in maintenance mode, so a run that coincides with a reset neither fails nor duplicates intervals.
+The work schedule is not stored: it is derived from each worker's email and the date, so the history filled in by a reset and the intervals added later follow the same days. Resets and emulator runs share a cache lock (`demo:reset`): the emulator skips its run while a reset holds it, and a reset waits up to a minute for a running emulator and refuses to start while another reset runs. The lock needs a cache store shared by the scheduler and manual runs (the default file cache of one instance is). The emulator also skips workers who already have time in the slot. A reset started while the application is already in maintenance mode leaves it in maintenance mode.
 
 ## Verifying the Installation
 

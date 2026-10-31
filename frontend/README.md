@@ -58,7 +58,8 @@ After rebuilding the interface, open the login page: the demo account selector a
 
 ## Implementation Notes
 
-- The timer in `components/Timer.vue` counts down to `next_reset_at` from `GET /api/demo/info`. If the request fails, it falls back to the next three-hour boundary in the browser's time zone.
+- The timer in `components/Timer.vue` counts down to `next_reset_at` from `GET /api/demo/info` and requests it again once that time has passed, since the gap between resets changes with daylight saving time. Until the server answers, it counts to the next three-hour boundary in the browser's time zone.
+- If `GET /api/demo/info` fails, for example during a reset, the account selector retries every five seconds.
 - The client build contains no credentials: the selector sends only the account key.
 - Hidden fields do not replace Cattr's access controls; the backend part protects the demo accounts.
 

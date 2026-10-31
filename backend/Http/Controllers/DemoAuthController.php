@@ -19,13 +19,13 @@ class DemoAuthController extends Controller
      * @api             {get} /demo/info Demo info
      * @apiDescription  Demo accounts available for the passwordless login and the time of the next reset
      *
-     * @apiSuccess {String[]}  data.accounts       Account keys in the selector order
+     * @apiSuccess {String[]}  data.accounts       Keys of the accounts that can sign in, in the selector order
      * @apiSuccess {ISO8601}   data.next_reset_at  When the demo data is reset next
      */
     public function info(): JsonResponse
     {
         return responder()->success([
-            'accounts' => DemoAccounts::keys(),
+            'accounts' => DemoAccounts::available(),
             'next_reset_at' => DemoReset::nextResetAt()->toIso8601String(),
         ])->respond();
     }

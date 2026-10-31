@@ -20,6 +20,8 @@ class WorkSchedule
 {
     public const SLOT_MINUTES = 5;
     private const SLOTS_PER_DAY = 24 * 60 / self::SLOT_MINUTES;
+    private const CACHED_SLOTS = 48;
+    private const CACHED_DAYS = 6;
 
     private const DAY_OFF_CHANCE = 12;
     private const MEETING_CHANCE = 30;
@@ -82,6 +84,8 @@ class WorkSchedule
      */
     public function activeAt(CarbonImmutable $start, int $minOnline = 0): array
     {
+        $this->prune($start);
+
         $active = $this->baseAt($start);
 
         if (count($active) >= $minOnline) {
@@ -137,6 +141,27 @@ class WorkSchedule
         $key = $worker['user']->id . '|' . $date;
 
         return $this->days[$key] ??= $this->planDay($worker, $date);
+    }
+
+    /**
+     * Drop cached slots and days well behind $start, so a long backfill keeps a bounded cache.
+     * Callers move forward in time; going back just recomputes the dropped entries.
+     */
+    private function prune(CarbonImmutable $start): void
+    {
+        if (count($this->base) > self::CACHED_SLOTS) {
+            $border = $start->timestamp - 2 * 3600;
+            $this->base = array_filter($this->base, static fn (int $timestamp) => $timestamp >= $border, ARRAY_FILTER_USE_KEY);
+        }
+
+        if (count($this->days) > count($this->workers()) * self::CACHED_DAYS) {
+            $border = $start->subDays(2)->toDateString();
+            $this->days = array_filter(
+                $this->days,
+                static fn (string $key) => explode('|', $key)[1] >= $border,
+                ARRAY_FILTER_USE_KEY
+            );
+        }
     }
 
     /** @return array<int, array{task: int, manual: bool}> */

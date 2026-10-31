@@ -9,41 +9,59 @@
 <script>
     import { getDemoInfo } from '../services/demo.service';
 
-    const PERIOD_MS = 3 * 60 * 60 * 1000;
+    const RETRY_MS = 15000;
 
     export default {
         data() {
             return {
                 timeBeforeDemoReset: '',
                 nextResetAt: null,
+                resetDue: false,
             };
         },
 
-        async created() {
+        created() {
             this.tick();
             this.interval = setInterval(this.tick, 1000);
-
-            try {
-                this.nextResetAt = new Date((await getDemoInfo()).next_reset_at).getTime();
-            } catch (e) {
-                // Keep counting to the browser's three-hour boundary
-            }
+            this.loadResetTime();
         },
 
         beforeDestroy() {
             clearInterval(this.interval);
+            clearTimeout(this.retryTimeout);
         },
 
         methods: {
+            async loadResetTime(refresh = false) {
+                try {
+                    const nextResetAt = new Date((await getDemoInfo({ refresh })).next_reset_at).getTime();
+
+                    if (nextResetAt > Date.now()) {
+                        this.nextResetAt = nextResetAt;
+                        this.resetDue = false;
+                        return;
+                    }
+                } catch (e) {
+                    // The backend is down, most likely for the reset itself
+                }
+
+                this.retryTimeout = setTimeout(() => this.loadResetTime(true), RETRY_MS);
+            },
+
             tick() {
                 const now = Date.now();
 
-                if (this.nextResetAt !== null && this.nextResetAt <= now) {
-                    // The reset is due: the next one is a period later
-                    this.nextResetAt += PERIOD_MS;
+                if (this.nextResetAt !== null && this.nextResetAt <= now && !this.resetDue) {
+                    // The server knows when the next reset is, the gap is not always three hours (DST)
+                    this.resetDue = true;
+                    this.loadResetTime(true);
                 }
 
-                const target = this.nextResetAt ?? this.browserBoundary(now);
+                let target = this.nextResetAt ?? this.browserBoundary(now);
+                if (this.resetDue) {
+                    target = now;
+                }
+
                 const left = Math.max(0, Math.floor((target - now) / 1000));
 
                 const h = Math.floor(left / 3600);
@@ -55,6 +73,7 @@
                 this.timeBeforeDemoReset = `${h}:${m}:${s}`;
             },
 
+            // Fallback until the server answers: the next three-hour boundary in the browser's timezone
             browserBoundary(now) {
                 const date = new Date(now);
                 date.setHours(date.getHours() - (date.getHours() % 3) + 3, 0, 0, 0);

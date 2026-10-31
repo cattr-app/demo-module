@@ -2,6 +2,7 @@
 
 namespace Modules\Demo\Commands;
 
+use Cache;
 use Illuminate\Console\Command;
 use Modules\Demo\Services\WorkEmulator;
 
@@ -31,7 +32,8 @@ class EmulateWork extends Command
             return 0;
         }
 
-        $emulator->emulateSlot(now());
+        // Skipped while a reset holds the lock: it fills in the time so far by itself
+        Cache::lock(DemoReset::LOCK, 60)->get(static fn () => $emulator->emulateSlot(now()));
 
         return 0;
     }

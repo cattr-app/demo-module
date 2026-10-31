@@ -44,6 +44,18 @@ class DemoAccounts
         return array_map(self::email(...), self::keys());
     }
 
+    /**
+     * Keys of the accounts that exist and are active, in the selector order.
+     *
+     * @return string[]
+     */
+    public static function available(): array
+    {
+        $emails = User::whereIn('email', self::emails())->where('active', true)->pluck('email')->all();
+
+        return array_values(array_filter(self::keys(), static fn (string $key) => in_array(self::email($key), $emails, true)));
+    }
+
     public static function find(string $key): ?User
     {
         return isset(self::ACCOUNTS[$key]) ? User::firstWhere('email', self::email($key)) : null;
@@ -78,7 +90,7 @@ class DemoAccounts
     }
 
     /**
-     * Demo users whose work the emulator imitates, see workProfile().
+     * Active demo users whose work the emulator imitates, see workProfile().
      *
      * @return Collection<int, User>
      */
@@ -89,6 +101,6 @@ class DemoAccounts
             array_map(DemoCatalog::teamEmail(...), array_keys(DemoCatalog::TEAM)),
         );
 
-        return User::whereIn('email', $emails)->orderBy('id')->get();
+        return User::whereIn('email', $emails)->where('active', true)->orderBy('id')->get();
     }
 }
