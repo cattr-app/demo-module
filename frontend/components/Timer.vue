@@ -27,6 +27,8 @@
         },
 
         beforeDestroy() {
+            // A request still in flight must not schedule another retry
+            this.destroyed = true;
             clearInterval(this.interval);
             clearTimeout(this.retryTimeout);
         },
@@ -45,7 +47,9 @@
                     // The backend is down, most likely for the reset itself
                 }
 
-                this.retryTimeout = setTimeout(() => this.loadResetTime(true), RETRY_MS);
+                if (!this.destroyed) {
+                    this.retryTimeout = setTimeout(() => this.loadResetTime(true), RETRY_MS);
+                }
             },
 
             tick() {

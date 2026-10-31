@@ -62,6 +62,8 @@
         },
 
         beforeDestroy() {
+            // A request still in flight must not schedule another retry
+            this.destroyed = true;
             clearTimeout(this.retryTimeout);
         },
 
@@ -78,7 +80,7 @@
 
                 // The backend may be down for a reset, or answer before the accounts are seeded:
                 // keep trying until there is an account to sign in with
-                if (!this.accounts.length) {
+                if (!this.accounts.length && !this.destroyed) {
                     this.retryTimeout = setTimeout(() => this.loadAccounts(true), RETRY_MS);
                 }
             },
