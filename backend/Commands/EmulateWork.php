@@ -2,11 +2,9 @@
 
 namespace Modules\Demo\Commands;
 
-use App\Contracts\ScreenshotService;
-use App\Models\TimeInterval;
-use Illuminate\Console\Command;
-use Storage;
 use Cache;
+use Illuminate\Console\Command;
+use Modules\Demo\Services\WorkEmulator;
 
 /**
  * Class EmulateWork
@@ -27,33 +25,15 @@ class EmulateWork extends Command
      */
     protected $description = 'Cattr Emulation of the work (only for demo)';
 
-    private const INTERVAL_DURATION = 300;
-
-    public function handle(): int
+    public function handle(WorkEmulator $emulator): int
     {
-        $plan = Cache::get('usersPlan');
-
-        if (!$plan) {
-            $this->call(PlanWork::class);
-            return 1;
+        // A reset is in progress; it fills in the time so far by itself
+        if ($this->laravel->isDownForMaintenance()) {
+            return 0;
         }
 
-        $now = now();
-
-        $timeFromBeginOfTheDay = ((int)date('H') * 60) + ((int)date('i'));
-
-        foreach ($plan as $entry) {
-            foreach ($entry['intervals'] as $interval) {
-                if ($timeFromBeginOfTheDay >= $interval['start'] && $timeFromBeginOfTheDay <= $interval['end']) {
-                    TimeInterval::factory([
-                        'task_id' => $interval['task'],
-                        'user_id' => $entry['user'],
-                        'start_at' => $now->subSeconds(self::INTERVAL_DURATION)->toIso8601String(),
-                        'end_at' => $now->toIso8601String(),
-                    ])->withScreenshot()->create();
-                }
-            }
-        }
+        // Skipped while a reset holds the lock: it fills in the time so far by itself
+        Cache::lock(DemoReset::LOCK, 60)->get(static fn () => $emulator->emulateSlot(now()));
 
         return 0;
     }

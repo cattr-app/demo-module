@@ -15,6 +15,7 @@
   "files": [
     "module.init.js",
     "components/",
+    "services/",
     "locales/"
   ],
   "bugs": "https://github.com/cattr-app/demo-module/issues",

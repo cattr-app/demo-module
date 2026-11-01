@@ -2,13 +2,9 @@
 
 namespace Modules\Demo\Commands;
 
-use App\Enums\Role;
-use App\Models\Task;
-use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
-use Cache;
-use Psr\SimpleCache\InvalidArgumentException;
-use Illuminate\Database\Eloquent\Builder;
+use Modules\Demo\Services\WorkSchedule;
 
 /**
  * Class PlanWork
@@ -20,218 +16,97 @@ class PlanWork extends Command
      *
      * @var string
      */
-    protected $signature = 'cattr:demo:plan';
+    protected $signature = 'cattr:demo:plan {date? : Day in the application timezone, today by default}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Cattr Planning of the work (only for demo)';
+    protected $description = 'Show the demo work of a day and the fewest people at work each hour (only for demo)';
 
-    // 1440 - limit of the time at a day
-
-    private array $plans = [
-        [['start' => 540, 'end' => 780], ['start' => 840, 'end' => 1080]],
-        [['start' => 600, 'end' => 780], ['start' => 840, 'end' => 1140]],
-        [
-            ['start' => 480, 'end' => 570],
-            ['start' => 582, 'end' => 672],
-            ['start' => 684, 'end' => 774],
-            ['start' => 786, 'end' => 876],
-            ['start' => 888, 'end' => 978],
-            ['start' => 990, 'end' => 1020]
-        ],
-        [['start' => 600, 'end' => 720], ['start' => 835, 'end' => 1105], ['start' => 1165, 'end' => 1255]],
-        [
-            ['start' => 480, 'end' => 600],
-            ['start' => 620, 'end' => 720],
-            ['start' => 780, 'end' => 900],
-            ['start' => 915, 'end' => 1020]
-        ],
-        [['start' => 780, 'end' => 990], ['start' => 1065, 'end' => 1275]],
-        [],
-        [],
-
-        [
-            ['start' => 107, 'end' => 155],
-            ['start' => 365, 'end' => 428],
-            ['start' => 707, 'end' => 728],
-            ['start' => 941, 'end' => 975],
-            ['start' => 1219, 'end' => 1241]
-        ],
-        [
-            ['start' => 288, 'end' => 295],
-            ['start' => 389, 'end' => 564],
-            ['start' => 603, 'end' => 679],
-            ['start' => 684, 'end' => 689],
-            ['start' => 752, 'end' => 845],
-            ['start' => 854, 'end' => 1114],
-            ['start' => 1390, 'end' => 1397],
-            ['start' => 1429, 'end' => 102]
-        ],
-        [
-            ['start' => 136, 'end' => 183],
-            ['start' => 424, 'end' => 434],
-            ['start' => 560, 'end' => 621],
-            ['start' => 862, 'end' => 906],
-            ['start' => 1171, 'end' => 1194],
-            ['start' => 1204, 'end' => 1356],
-            ['start' => 1363, 'end' => 110]
-        ],
-        [
-            ['start' => 89, 'end' => 201],
-            ['start' => 303, 'end' => 417],
-            ['start' => 620, 'end' => 660],
-            ['start' => 688, 'end' => 914],
-            ['start' => 1112, 'end' => 1194],
-            ['start' => 1403, 'end' => 1410]
-        ],
-        [
-            ['start' => 171, 'end' => 224],
-            ['start' => 249, 'end' => 486],
-            ['start' => 674, 'end' => 744],
-            ['start' => 920, 'end' => 971],
-            ['start' => 1057, 'end' => 1123],
-            ['start' => 1357, 'end' => 1379]
-        ],
-        [
-            ['start' => 95, 'end' => 135],
-            ['start' => 357, 'end' => 381],
-            ['start' => 545, 'end' => 630],
-            ['start' => 648, 'end' => 734],
-            ['start' => 996, 'end' => 1021],
-            ['start' => 1282, 'end' => 1288]
-        ],
-        [
-            ['start' => 299, 'end' => 299],
-            ['start' => 599, 'end' => 599],
-            ['start' => 687, 'end' => 858],
-            ['start' => 1119, 'end' => 1122],
-            ['start' => 1378, 'end' => 1389]
-        ],
-        [
-            ['start' => 211, 'end' => 269],
-            ['start' => 298, 'end' => 346],
-            ['start' => 353, 'end' => 531],
-            ['start' => 747, 'end' => 810],
-            ['start' => 1003, 'end' => 1092],
-            ['start' => 1105, 'end' => 1372]
-        ],
-        [
-            ['start' => 140, 'end' => 193],
-            ['start' => 451, 'end' => 465],
-            ['start' => 579, 'end' => 700],
-            ['start' => 741, 'end' => 983],
-            ['start' => 1195, 'end' => 1280],
-            ['start' => 1428, 'end' => 118]
-        ],
-        [
-            ['start' => 225, 'end' => 294],
-            ['start' => 474, 'end' => 503],
-            ['start' => 554, 'end' => 699],
-            ['start' => 714, 'end' => 852],
-            ['start' => 915, 'end' => 989],
-            ['start' => 1196, 'end' => 1285],
-            ['start' => 1427, 'end' => 139]
-        ],
-        [
-            ['start' => 92, 'end' => 217],
-            ['start' => 463, 'end' => 463],
-            ['start' => 759, 'end' => 762],
-            ['start' => 813, 'end' => 817],
-            ['start' => 977, 'end' => 1006],
-            ['start' => 1095, 'end' => 1113],
-            ['start' => 1265, 'end' => 1318]
-        ],
-        [
-            ['start' => 200, 'end' => 252],
-            ['start' => 305, 'end' => 323],
-            ['start' => 540, 'end' => 585],
-            ['start' => 694, 'end' => 878],
-            ['start' => 955, 'end' => 1177],
-            ['start' => 1405, 'end' => 22]
-        ],
-        [
-            ['start' => 32, 'end' => 174],
-            ['start' => 435, 'end' => 467],
-            ['start' => 582, 'end' => 702],
-            ['start' => 916, 'end' => 977],
-            ['start' => 1134, 'end' => 1204],
-            ['start' => 1261, 'end' => 1421]
-        ],
-        [
-            ['start' => 222, 'end' => 223],
-            ['start' => 405, 'end' => 405],
-            ['start' => 507, 'end' => 572],
-            ['start' => 744, 'end' => 862],
-            ['start' => 1078, 'end' => 1094],
-            ['start' => 1270, 'end' => 1283]
-        ],
-        [
-            ['start' => 220, 'end' => 283],
-            ['start' => 326, 'end' => 581],
-            ['start' => 834, 'end' => 859],
-            ['start' => 1140, 'end' => 1150],
-            ['start' => 1231, 'end' => 1378]
-        ],
-        [
-            ['start' => 38, 'end' => 148],
-            ['start' => 260, 'end' => 423],
-            ['start' => 568, 'end' => 659],
-            ['start' => 849, 'end' => 921],
-            ['start' => 1208, 'end' => 1216]
-        ]
-    ];
-
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     * @throws InvalidArgumentException
-     */
-    public function handle(): int
+    public function handle(WorkSchedule $schedule): int
     {
-        $users = User::where('role_id', '!=', Role::ADMIN)->get()->toArray();
+        $day = CarbonImmutable::parse($this->argument('date') ?? 'today')->startOfDay();
+        $minOnline = (int)config('demo.min_online');
 
-        $plan = [];
-        $plans = $this->plans;
+        // The same slots the emulator turns into intervals, with and without the extra hours
+        $planned = [];
+        $extra = [];
+        $atWork = array_fill(0, 24, PHP_INT_MAX);
 
-        while (count($users)) {
-            $user = $this->getRandomValue($users);
+        for ($start = $day; $start < $day->addDay(); $start = $start->addMinutes(WorkSchedule::SLOT_MINUTES)) {
+            $base = $schedule->activeAt($start);
+            $active = $schedule->activeAt($start, $minOnline);
+            $atWork[$start->hour] = min($atWork[$start->hour], count($active));
 
-            $tasks = Task::whereHas('users', function (Builder $query) use ($user) {
-                $query->where('id', '=', $user['id']);
-            })->get()->toArray();
-
-            if (!count($tasks)) {
-                continue;
+            foreach (array_keys($active) as $userId) {
+                if (isset($base[$userId])) {
+                    $planned[$userId][] = $start;
+                } else {
+                    $extra[$userId][] = $start;
+                }
             }
+        }
 
-            $plan[] = [
-                'user' => $user['id'],
-                'intervals' => array_map(static function ($el) use ($tasks) {
-                    shuffle($tasks);
+        $rows = [];
+        foreach ($schedule->workers() as $userId => $worker) {
+            $slots = array_merge($planned[$userId] ?? [], $extra[$userId] ?? []);
+            usort($slots, static fn (CarbonImmutable $a, CarbonImmutable $b) => $a <=> $b);
 
-                    $el['task'] = array_pop($tasks)['id'];
-
-                    return $el;
-                }, $this->getRandomValue($plans)),
+            $rows[] = [
+                $worker['user']->full_name,
+                $worker['timezone'],
+                self::periods($slots, $worker['timezone']),
+                self::hours(count($planned[$userId] ?? [])),
+                self::hours(count($extra[$userId] ?? [])),
             ];
         }
 
-        Cache::set('usersPlan', $plan);
+        $this->table(['Worker', 'Timezone', 'Local time at work', 'Planned hours', 'Extra hours'], $rows);
+
+        // A day that skips an hour (DST) leaves it unvisited
+        $atWork = array_filter($atWork, static fn (int $count) => $count !== PHP_INT_MAX);
+
+        $this->line('Fewest people at work per hour (application timezone): ' . implode(', ', array_map(
+            static fn (int $hour, int $count) => sprintf('%02d:00 %d', $hour, $count),
+            array_keys($atWork),
+            $atWork
+        )));
 
         return 0;
     }
 
     /**
-     * @param $array
-     * @return mixed
+     * Periods of work in the worker's local time, in the order of the day; gaps up to 90 minutes
+     * (lunch, breaks) are part of a period.
+     *
+     * @param CarbonImmutable[] $slots slot starts in ascending order
      */
-    public function getRandomValue(&$array): mixed
+    private static function periods(array $slots, string $timezone): string
     {
-        shuffle($array);
-        return array_pop($array);
+        $periods = [];
+
+        foreach ($slots as $start) {
+            $end = $start->addMinutes(WorkSchedule::SLOT_MINUTES);
+            $last = array_key_last($periods);
+
+            if ($last !== null && $periods[$last][1]->diffInMinutes($start) <= 90) {
+                $periods[$last][1] = $end;
+            } else {
+                $periods[] = [$start, $end];
+            }
+        }
+
+        return $periods ? implode(', ', array_map(
+            static fn (array $period) => $period[0]->setTimezone($timezone)->format('H:i') . '–'
+                . $period[1]->setTimezone($timezone)->format('H:i'),
+            $periods
+        )) : '—';
+    }
+
+    private static function hours(int $slots): float
+    {
+        return round($slots * WorkSchedule::SLOT_MINUTES / 60, 1);
     }
 }
