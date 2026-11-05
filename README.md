@@ -14,6 +14,7 @@ For the demo account selector, reset banner, and interface setup, see the [front
 - **Work emulation.** Everyone except the administrator and the project auditor has a working day of about eight hours in their own timezone, with lunch, short breaks, task switches, an occasional manual meeting interval, days off and an activity profile. Every five minutes the past slot gets an interval for each worker. When fewer than three people would be at work, team members whose local time allows take an extra hour, so somebody is nearly always online (best effort, see `DEMO_MIN_ONLINE`). A reset fills in the past 14 days and today at once, then fits the task estimates to the tracked time, so only some tasks are over their estimate.
 - **Reset page.** While a reset runs, the instance is in maintenance mode with its own page: "The demo is being reset", with a spinner, reloading itself every five seconds until the demo is back.
 - **Screenshot placeholders.** Every interval is served one of 10 colored placeholders, chosen by the interval ID. The disk (local or S3) holds 10 originals and 10 thumbnails however many intervals there are. Uploaded screenshots are discarded, and deleting an interval keeps the shared files.
+- **Dummy storage API.** `GET /api/about/storage` returns fixed dummy figures (200 GiB disk, 64 GiB used) instead of the real disk size and usage, and `POST /api/about/storage` accepts the request and does nothing, so no cleanup is ever queued.
 
 ## Requirements
 

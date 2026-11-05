@@ -3,12 +3,14 @@
 namespace Modules\Demo\Providers;
 
 use App\Exceptions\Entities\AuthorizationException;
+use App\Http\Controllers\Api\AboutController;
 use Filter;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Modules\Demo\Commands\DemoReset;
 use Modules\Demo\Commands\EmulateWork;
 use Modules\Demo\Commands\PlanWork;
+use Modules\Demo\Http\Controllers\DemoAboutController;
 use Modules\Demo\Support\DemoAccounts;
 
 class ModuleServiceProvider extends ServiceProvider
@@ -19,6 +21,9 @@ class ModuleServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../Config/config.php', 'demo');
+
+        // Routes resolve controllers through the container: the demo serves dummy storage data
+        $this->app->bind(AboutController::class, DemoAboutController::class);
 
         $this->commands([
             DemoReset::class,
